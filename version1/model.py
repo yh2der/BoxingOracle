@@ -430,7 +430,7 @@ def create_ratio_features(df):
 def prepare_data():
     """準備訓練數據"""
     # 讀取數據
-    df = pd.read_csv('matches.csv')
+    df = pd.read_csv('data/matches.csv')
     
     # 特徵工程
     df = create_difference_features(df)

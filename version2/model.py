@@ -338,10 +338,10 @@ class ActivationLayer:
         
         return dZ
     
-from prepare_data import prepare_data
+from data_processor import prepare_data
 
 # 讀取和準備數據
-df = pd.read_csv('boxing-matches.csv')
+df = pd.read_csv('data/boxing-matches.csv')
 X_train, X_test, y_train, y_test, scaler = prepare_data(df)
 
 # 創建模型
