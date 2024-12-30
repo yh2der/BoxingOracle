@@ -13,47 +13,75 @@ class PunchType(Enum):
     LEAD_UPPERCUT = "Lead Uppercut"
     REAR_UPPERCUT = "Rear Uppercut"
 
+# 加入拳種特性
+PUNCH_HEIGHT_PREFERENCE = {
+    PunchType.JAB: 0,          # 中性
+    PunchType.CROSS: 0,        # 中性
+    PunchType.LEAD_HOOK: 0,    # 中性
+    PunchType.REAR_HOOK: 0,    # 中性
+    PunchType.LEAD_UPPERCUT: -0.002,  # 矮打高優勢
+    PunchType.REAR_UPPERCUT: -0.002   # 矮打高優勢
+}
+
+PUNCH_REACH_IMPORTANCE = {
+    PunchType.JAB: 1.2,        # 臂展影響更大
+    PunchType.CROSS: 1.2,      # 臂展影響更大
+    PunchType.LEAD_HOOK: 0.8,  # 臂展影響較小
+    PunchType.REAR_HOOK: 0.8,  # 臂展影響較小
+    PunchType.LEAD_UPPERCUT: 0.6,  # 臂展影響最小
+    PunchType.REAR_UPPERCUT: 0.6   # 臂展影響最小
+}
+
+PUNCH_WEIGHT_IMPORTANCE = {
+    PunchType.JAB: 0.6,        # 體重影響較小
+    PunchType.CROSS: 0.8,      # 體重影響一般
+    PunchType.LEAD_HOOK: 1.2,  # 體重影響較大
+    PunchType.REAR_HOOK: 1.2,  # 體重影響較大
+    PunchType.LEAD_UPPERCUT: 1.0,  # 體重影響一般
+    PunchType.REAR_UPPERCUT: 1.0   # 體重影響一般
+}
+
 PUNCH_PROPERTIES = {
     PunchType.JAB: {
-        "damage": 25,
+        "damage": 6,
         "stamina_cost": 0.3,
         "time_cost": 0.3,
-        "accuracy": 0.9,
+        "accuracy": 0.85,
         "points": 1
     },
     PunchType.CROSS: {
-        "damage": 40,
+        "damage": 11,
         "stamina_cost": 0.6,
         "time_cost": 0.5,
-        "accuracy": 0.8,
-        "points": 2
-    },
-    PunchType.LEAD_HOOK: {
-        "damage": 50,
-        "stamina_cost": 0.8,
-        "time_cost": 0.6,
         "accuracy": 0.75,
         "points": 2
     },
+    PunchType.LEAD_HOOK: {
+        "damage": 15,
+        "stamina_cost": 0.8,
+        "time_cost": 0.6,
+        "accuracy": 0.7,
+        "points": 2
+    },
     PunchType.REAR_HOOK: {
-        "damage": 60,
+        "damage": 18,
         "stamina_cost": 1,
         "time_cost": 0.7,
-        "accuracy": 0.7,
-        "points": 3
-    },
-    PunchType.LEAD_UPPERCUT: {
-        "damage": 70,
-        "stamina_cost": 1.2,
-        "time_cost": 0.8,
         "accuracy": 0.65,
         "points": 3
     },
+    PunchType.LEAD_UPPERCUT: {
+        "damage": 20,
+        "stamina_cost": 1.2,
+        "time_cost": 0.8,
+        "accuracy": 0.6,
+        "points": 3
+    },
     PunchType.REAR_UPPERCUT: {
-        "damage": 80,
+        "damage": 24,
         "stamina_cost": 1.4,
         "time_cost": 0.9,
-        "accuracy": 0.6,
+        "accuracy": 0.55,
         "points": 4
     }
 }
@@ -77,15 +105,15 @@ class Boxer:
     def generate(cls, name: str) -> 'Boxer':
         return cls(
             name=name,
-            weight=random.uniform(60.0, 100.0),
-            height=random.randint(165, 195),
-            reach=random.randint(170, 200),
-            power=random.randint(60, 100),
-            speed=random.randint(60, 100),
-            stamina=random.randint(60, 100),
-            defense=random.randint(60, 100),
-            chin=random.randint(60, 100),
-            experience=random.randint(1, 100)
+            weight=random.uniform(70.0, 90.0),
+            height=random.randint(170, 185),
+            reach=random.randint(170, 185),
+            power=random.randint(70, 90),
+            speed=random.randint(70, 90),
+            stamina=random.randint(70, 90),
+            defense=random.randint(70, 90),
+            chin=random.randint(70, 90),
+            experience=random.randint(50, 100)
         )
 
 @dataclass
@@ -98,7 +126,6 @@ class RoundState:
     clean_hits_B: int = 0
     total_punches_A: int = 0
     total_punches_B: int = 0
-    # 新增的特徵
     stamina_used_A: float = 0.0
     stamina_used_B: float = 0.0
     damage_dealt_A: float = 0.0
@@ -120,9 +147,29 @@ class BoxingMatch:
         self.current_round = 1
         self.round_state = RoundState()
         self.round_states: List[RoundState] = []
-        self.detailed_actions: List[Dict] = []  # 記錄每個動作的詳細資訊
+        self.detailed_actions: List[Dict] = []
 
-    def simulate_punch(self, attacker: Boxer, defender: Boxer, attacker_label: str, force_attack: bool = False) -> Dict:
+    def calculate_physical_advantages(self, attacker: Boxer, defender: Boxer, punch_type: PunchType) -> Tuple[float, float]:
+        """計算基於物理屬性的優勢"""
+        # 1. 臂展優勢 (每1cm差異影響0.1%，受拳種影響)
+        reach_advantage = ((attacker.reach - defender.reach) * 0.001 
+                         * PUNCH_REACH_IMPORTANCE[punch_type])
+        
+        # 2. 身高優勢 (每1cm差異影響0.2%，uppercut有特殊計算)
+        height_difference = attacker.height - defender.height
+        height_advantage = (height_difference * PUNCH_HEIGHT_PREFERENCE[punch_type])
+        
+        # 3. 體重優勢 (每1kg差異影響0.5%，受拳種影響)
+        weight_advantage = ((attacker.weight - defender.weight) * 0.005 
+                          * PUNCH_WEIGHT_IMPORTANCE[punch_type])
+        
+        # 分別返回命中率修正和傷害修正
+        hit_modifier = 1 + reach_advantage + height_advantage
+        damage_modifier = 1 + weight_advantage
+        
+        return hit_modifier, damage_modifier
+
+    def simulate_punch(self, attacker: Boxer, defender: Boxer, attacker_label: str) -> Dict:
         """模擬出拳並返回詳細資訊"""
         action_info = {
             "round": self.current_round,
@@ -140,8 +187,7 @@ class BoxingMatch:
             "is_knockdown": False
         }
 
-        # 如果體力不足且不是強制攻擊，則進入防守狀態
-        if attacker.current_stamina < 10 and not force_attack:
+        if attacker.current_stamina < 10:
             stamina_recovered = random.uniform(5, 10)
             attacker.current_stamina = min(100, attacker.current_stamina + stamina_recovered)
             action_info["is_defense"] = True
@@ -159,24 +205,31 @@ class BoxingMatch:
             self.round_state.total_punches_B += 1
             self.round_state.punch_types_B[punch_type.value] += 1
 
+        # 計算物理優勢
+        hit_modifier, damage_modifier = self.calculate_physical_advantages(attacker, defender, punch_type)
+
+        # 命中率計算 (加入物理優勢)
         hit_chance = (
             punch_info["accuracy"]
             * (attacker.speed / 100)
             * (attacker.current_stamina / 100)
             * (1 - defender.defense / 200)
+            * hit_modifier  # 加入物理優勢影響
         )
-
         is_hit = random.random() < hit_chance
         action_info["is_hit"] = is_hit
 
         if is_hit:
+            # 傷害計算 (加入物理優勢)
             damage = (
                 punch_info["damage"]
                 * (attacker.power / 100)
                 * (attacker.current_stamina / 100)
-                * (1 - defender.chin / 200)
+                * (1 - defender.chin / 220)
+                * 0.80
+                * damage_modifier  # 加入物理優勢影響
             )
-            
+                    
             defender.current_hp = max(0, defender.current_hp - damage)
             action_info["damage"] = damage
 
@@ -189,14 +242,24 @@ class BoxingMatch:
                 self.round_state.points_B += punch_info["points"]
                 self.round_state.damage_dealt_B += damage
 
-            if damage > 15 and random.random() < 0.15:
+            knockout_chance = (
+                0.005
+                * (damage / 18)
+                * (1 - defender.current_hp / 100)
+                * (attacker.power / 100)
+                * (1 - defender.chin / 140)
+                * (1 - defender.current_stamina / 180)
+                * damage_modifier  # 加入物理優勢對擊倒的影響
+            )
+            
+            if random.random() < knockout_chance:
                 action_info["is_knockdown"] = True
                 if attacker_label == "A":
                     self.round_state.knockdowns_B += 1
-                    defender.current_hp -= 10
+                    defender.current_hp -= 12
                 else:
                     self.round_state.knockdowns_A += 1
-                    defender.current_hp -= 10
+                    defender.current_hp -= 12
 
         stamina_cost = punch_info["stamina_cost"]
         attacker.current_stamina = max(0, attacker.current_stamina - stamina_cost)
@@ -211,26 +274,22 @@ class BoxingMatch:
 
     def simulate_round(self) -> Tuple[bool, str, str]:
         """模擬一個回合"""
-        time_left = 180.0  # 3分鐘
+        time_left = 180.0
         self.round_state = RoundState()
         
         while time_left > 0:
-            # A行動
             action_A = self.simulate_punch(self.boxerA, self.boxerB, "A")
             self.detailed_actions.append(action_A)
             
-            # 檢查是否KO
             if self.boxerB.current_hp <= 0:
-                self.round_states.append(self.round_state)  # 確保保存最後一回合的數據
+                self.round_states.append(self.round_state)
                 return True, self.boxerA.name, "KO"
 
-            # B行動
             action_B = self.simulate_punch(self.boxerB, self.boxerA, "B")
             self.detailed_actions.append(action_B)
             
-            # 檢查是否KO
             if self.boxerA.current_hp <= 0:
-                self.round_states.append(self.round_state)  # 確保保存最後一回合的數據
+                self.round_states.append(self.round_state)
                 return True, self.boxerB.name, "KO"
 
             time_left -= 2
@@ -242,22 +301,22 @@ class BoxingMatch:
     def _end_round_processing(self):
         """回合結束處理"""
         for boxer in [self.boxerA, self.boxerB]:
-            boxer.current_stamina = min(100, boxer.current_stamina + 30)
-            boxer.current_hp = min(100, boxer.current_hp + 10)
+            boxer.current_stamina = min(100, boxer.current_stamina + 20)
+            boxer.current_hp = min(100, boxer.current_hp + 7)
 
     def _judge_match(self) -> Tuple[str, str]:
         """判定比賽結果"""
         total_points_A = sum(r.points_A for r in self.round_states)
         total_points_B = sum(r.points_B for r in self.round_states)
-        
         point_diff = abs(total_points_A - total_points_B)
-        if point_diff < 10:
+
+        if point_diff < 5:
+            return "Draw", "Draw"
+        elif point_diff < 40:
             if total_points_A > total_points_B:
                 return self.boxerA.name, "Split Decision"
-            elif total_points_B > total_points_A:
-                return self.boxerB.name, "Split Decision"
             else:
-                return "Draw", "Draw"
+                return self.boxerB.name, "Split Decision"
         else:
             if total_points_A > total_points_B:
                 return self.boxerA.name, "Unanimous Decision"
@@ -377,7 +436,6 @@ def simulate_matches(num_matches: int = 1000, save_path: str = None, verbose: bo
         match = BoxingMatch(boxerA, boxerB, rounds=12)
         result = match.simulate_match()
         
-        # 驗證數據完整性
         if not any(result[f"total_{k}"] == 0 for k in ["punches_A", "punches_B"]):
             results.append(result)
         elif verbose:
@@ -402,60 +460,47 @@ def simulate_matches(num_matches: int = 1000, save_path: str = None, verbose: bo
     return df
 
 if __name__ == "__main__":
-    output_path = "boxing-matches.csv"
-    df = simulate_matches(10000, output_path)
+    # output_path = "boxing-matches.csv"
+    # df = simulate_matches(10000, output_path)
+
     
-    # 顯示基本統計
-    print("\n比賽統計:")
-    print(f"KO率: {(df['victory_condition'] == 'KO').mean()*100:.2f}%")
-    print(f"TKO率: {(df['victory_condition'] == 'TKO').mean()*100:.2f}%")
-    print(f"判決勝率: {(df['victory_condition'].str.contains('Decision')).mean()*100:.2f}%")
-    print(f"平均回合數: {df['rounds_completed'].mean():.2f}")
-    print(f"平均命中率A: {df['hit_rate_A'].mean():.2f}%")
-    print(f"平均命中率B: {df['hit_rate_B'].mean():.2f}%")
+    # (B) 自訂拳手對戰範例
+    # =========================
+    tyson = Boxer(
+        name="Iron Mike Tyson",
+        weight=95.5,
+        height=178,
+        reach=180,
+        power=95,
+        speed=90,
+        stamina=85,
+        defense=80,
+        chin=85,
+        experience=95
+    )
 
-    # count = 0
-    # # 創建比賽實例
-    # for i in range(1000):
-    #     # 手動創建拳擊手
-    #     tyson = Boxer(
-    #         name="Mike Tyson",
-    #         weight=95.5,    # 體重(kg)
-    #         height=178,     # 身高(cm)
-    #         reach=180,      # 臂展(cm)
-    #         power=95,       # 力量(1-100)
-    #         speed=90,       # 速度(1-100)
-    #         stamina=85,     # 體力(1-100)
-    #         defense=80,     # 防守(1-100)
-    #         chin=85,        # 抗打擊能力(1-100)
-    #         experience=95   # 經驗(1-100)
-    #     )
+    ali = Boxer(
+        name="Muhammad Ali",
+        weight=92.0,
+        height=191,
+        reach=198,
+        power=88,
+        speed=95,
+        stamina=95,
+        defense=90,
+        chin=90,
+        experience=98
+    )
 
-    #     ali = Boxer(
-    #         name="Muhammad Ali",
-    #         weight=92.0,
-    #         height=191,
-    #         reach=198,
-    #         power=88,
-    #         speed=95,
-    #         stamina=95,
-    #         defense=90,
-    #         chin=90,
-    #         experience=98
-    #     )
-    #     match = BoxingMatch(tyson, ali, rounds=12)
+    # 建立比賽
+    match = BoxingMatch(tyson, ali, rounds=1)
 
-    #     # 模擬一場比賽
-    #     result = match.simulate_match()
-        
-    #     # print(result["winner"])
-    #     if result['winner'] == "Mike Tyson":
-    #         count += 1
+    # 開始模擬比賽
+    result = match.simulate_match()
 
-    # print(f"Mike Tyson wins {count} in 1000 games")
+    # 只想印出誰贏
+    print("Winner:", result["winner"])
 
-    # # 印出結果
-    # # print(f"\n比賽結果:")
-    # # print(f"獲勝者: {result['winner']}")
-    # # print(f"獲勝方式: {result['victory_condition']}")
-    # # print(f"完成回合數: {result['rounds_completed']}")
+    # 若想保存成 CSV
+    # df_custom.to_csv("tyson_vs_ali.csv", index=False)
+    # print("\n已將 Tyson vs Ali 的對戰結果存為 tyson_vs_ali.csv")
