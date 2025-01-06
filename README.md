@@ -67,4 +67,4 @@ pip install -r requirements.txt
 - [ ] API 服務
 
 ## Demo
-[![BoxingOracle](https://youtu.be/LiB-moIhQ6Y/0.jpg)](https://youtu.be/LiB-moIhQ6Y)
+[Demo Video](https://youtu.be/LiB-moIhQ6Y)
