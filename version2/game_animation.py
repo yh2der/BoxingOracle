@@ -98,7 +98,6 @@ PUNCH_PROPERTIES = {
     },
 }
 
-
 # ------------------------------------------------------------
 #  賽事相關資料結構
 # ------------------------------------------------------------
@@ -132,7 +131,6 @@ class Boxer:
             experience=random.randint(50, 100),
         )
 
-
 @dataclass
 class RoundState:
     knockdowns_A: int = 0
@@ -155,7 +153,6 @@ class RoundState:
             self.punch_types_A = {p.value: 0 for p in PunchType}
         if self.punch_types_B is None:
             self.punch_types_B = {p.value: 0 for p in PunchType}
-
 
 # ------------------------------------------------------------
 #  模擬拳擊比賽 (含動畫效果)
@@ -258,7 +255,7 @@ class LiveBoxingMatch:
         return hit_modifier, damage_modifier
 
     # ------------------------------------------------------------
-    #  整合新版 simulate_punch + 防禦/回復邏輯 + 動畫敘述
+    #  simulate_punch + 防禦/回復邏輯 + 動畫敘述
     # ------------------------------------------------------------
     def simulate_punch(
         self, attacker: Boxer, defender: Boxer, attacker_label: str
@@ -582,9 +579,8 @@ class LiveBoxingMatch:
 
         return result
 
-
 # ------------------------------------------------------------
-#  範例：多場比賽模擬，可儲存為 CSV
+#  多場比賽模擬，可儲存為 CSV
 # ------------------------------------------------------------
 def simulate_matches(num_matches: int = 5):
     """

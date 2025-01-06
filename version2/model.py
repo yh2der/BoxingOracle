@@ -1,5 +1,5 @@
 ##################################################
-# 1. Imports
+# Imports
 ##################################################
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ from sklearn.metrics import roc_curve, auc
 import os
 
 ##################################################
-# 2. Data Preprocessing & Feature Engineering
+# Data Preprocessing & Feature Engineering
 ##################################################
 def prepare_static_data(df):
     """
@@ -23,7 +23,7 @@ def prepare_static_data(df):
     Returns:
         X_train, X_test, y_train, y_test, scaler, feature_columns
     """
-    # 1. 計算基本特徵差異
+    # 計算基本特徵差異
     static_attributes = ['weight', 'height', 'reach', 'power', 'speed', 
                         'stamina', 'defense', 'chin', 'experience']
     
@@ -34,7 +34,7 @@ def prepare_static_data(df):
         if attr in ['power', 'speed', 'stamina', 'defense', 'chin']:
             df[f'{attr}_ratio'] = df[f'boxerA_{attr}'] / df[f'boxerB_{attr}']
     
-    # 2. 綜合實力分數 (調整權重示範)
+    # 綜合實力分數 (調整權重示範)
     def calculate_fighter_score(row, prefix):
         return (
             row[f'{prefix}_power'] * 0.30 +
@@ -45,7 +45,7 @@ def prepare_static_data(df):
             row[f'{prefix}_experience'] * 0.10
         )
     
-    # 3. 物理優勢指標
+    # 物理優勢指標
     def calculate_physical_advantage(row):
         weight_adv = (row['boxerA_weight'] - row['boxerB_weight']) * 0.005
         reach_height_ratio_A = row['boxerA_reach'] / row['boxerA_height']
@@ -56,7 +56,7 @@ def prepare_static_data(df):
         bmi_advantage = (bmi_A - bmi_B) * 0.1
         return weight_adv + reach_advantage + bmi_advantage
     
-    # 4. 技術優勢指標
+    # 技術優勢指標
     def calculate_technical_advantage(row):
         speed_power_ratio_A = row['boxerA_speed'] / row['boxerA_power']
         speed_power_ratio_B = row['boxerB_speed'] / row['boxerB_power']
@@ -75,7 +75,7 @@ def prepare_static_data(df):
     df['physical_advantage'] = df.apply(calculate_physical_advantage, axis=1)
     df['technical_advantage'] = df.apply(calculate_technical_advantage, axis=1)
     
-    # 5. 建立 feature_columns
+    # 建立 feature_columns
     feature_columns = [
         'weight_diff', 'height_diff', 'reach_diff',
         'power_diff', 'speed_diff', 'stamina_diff', 
@@ -87,10 +87,10 @@ def prepare_static_data(df):
         'technical_advantage'
     ]
     
-    # 6. 轉換標籤
+    # 轉換標籤
     df['winner_encoded'] = (df['winner'].str.contains('A')).astype(int)
     
-    # 7. 分割數據
+    # 分割數據
     X = df[feature_columns]
     y = df['winner_encoded']
     
@@ -98,7 +98,7 @@ def prepare_static_data(df):
         X, y, test_size=0.2, random_state=42
     )
     
-    # 8. 標準化
+    # 標準化
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
@@ -145,7 +145,7 @@ def calculate_fighter_score(row, prefix):
     )
 
 ##################################################
-# 3. Neural Network Classes
+# Neural Network Classes
 ##################################################
 class NeuralLayer:
     def __init__(self, input_dim: int, output_dim: int, name: str = ""):
@@ -178,7 +178,7 @@ class NeuralLayer:
         self.gradients['dW'] = (1/m) * np.dot(self.A_prev.T, dZ)
         self.gradients['db'] = (1/m) * np.sum(dZ, axis=0, keepdims=True)
         
-        # 梯度裁剪 (可視需求保留或刪除)
+        # 梯度裁剪
         clip_value = 5.0
         self.gradients['dW'] = np.clip(self.gradients['dW'], -clip_value, clip_value)
         self.gradients['db'] = np.clip(self.gradients['db'], -clip_value, clip_value)
@@ -233,11 +233,9 @@ class ActivationLayer:
         return dZ
     
     def leaky_sigmoid(self, Z):
-        # 只是一個自定義示範
         return 1 / (1 + np.exp(-Z)) + self.alpha * Z
     
     def leaky_sigmoid_derivative(self, Z):
-        # 自定義示範
         sig = 1 / (1 + np.exp(-Z))
         return sig * (1 - sig) + self.alpha
 
@@ -480,7 +478,7 @@ class DetailedNeuralNetwork:
         plt.show()
 
 ##################################################
-# 4. Basic Analysis & Advanced Visualization
+# Basic Analysis & Advanced Visualization
 ##################################################
 def analyze_training_data(X_train, y_train, feature_columns):
     """
@@ -498,7 +496,7 @@ def analyze_training_data(X_train, y_train, feature_columns):
         'Composite Scores': ['fighter_score_diff', 'physical_advantage', 'technical_advantage']
     }
     
-    # 1. 分組繪圖 (histogram)
+    # 分組繪圖 (histogram)
     for group_name, features in feature_groups.items():
         plt.figure(figsize=(15, 5 * ((len(features) + 2) // 3)))
         for i, feature in enumerate(features, 1):
@@ -510,7 +508,7 @@ def analyze_training_data(X_train, y_train, feature_columns):
         plt.tight_layout()
         plt.show()
     
-    # 2. 計算特徵的重要度（相關性, Cohen’s d, win_rate_impact）
+    # 計算特徵的重要度（相關性, Cohen’s d, win_rate_impact）
     feature_importance = []
     for feature in feature_columns:
         correlation = train_df[feature].corr(train_df['winner'])
@@ -611,7 +609,7 @@ def plot_2d_bin_winrate(df, feature_x, feature_y, bins_x=5, bins_y=5):
     plt.show()
 
 ##################################################
-# 5. Model Analyzer
+# Model Analyzer
 ##################################################
 class ModelAnalyzer:
     def __init__(self, model, feature_columns):
@@ -685,6 +683,7 @@ class ModelAnalyzer:
         plt.subplot(1, 3, 3)
         prob_bins = pd.cut(self.prediction_analysis['predicted_prob'], bins=10)
         error_rates = 1 - self.prediction_analysis.groupby(prob_bins)['correct_prediction'].mean()
+
         # prob_bins 只是分段標籤，畫圖時可自己定義 x 座標
         bin_centers = np.linspace(0, 1, 10)
         plt.plot(bin_centers, error_rates, marker='o')
@@ -706,7 +705,7 @@ if __name__ == "__main__":
     if os.path.exists(model_path):
         print("載入已訓練的模型...")
         model = DetailedNeuralNetwork.load_model(model_path)
-        df_for_preprocessing = pd.read_csv('data/boxing-matches.csv')  # 與原訓練資料結構相同
+        df_for_preprocessing = pd.read_csv('data/boxing-matches.csv')
         _, _, _, _, scaler, feature_columns = prepare_static_data(df_for_preprocessing)
     else:
         print("開始訓練新模型...")
@@ -717,6 +716,26 @@ if __name__ == "__main__":
         # 2. 準備數據
         X_train, X_test, y_train, y_test, scaler, feature_columns = prepare_static_data(df)
         
+        ##############################################################################
+        # (A) 資料分析 - 這裡插入分析程式碼
+        ##############################################################################
+        # 1) 分析各特徵的相關性、Cohen's d、勝率影響等，並繪製分佈圖
+        # fi_df = analyze_training_data(X_train, y_train, feature_columns)
+        # print("\n[資料分析] 特徵重要度（依 effect_size 排序）:")
+        # print(fi_df)
+        
+        # # 2) 繪製特徵與輸出之間的相關性 Heatmap
+        # train_df_for_heatmap = pd.DataFrame(X_train, columns=feature_columns)
+        # train_df_for_heatmap['winner'] = y_train
+        # plot_correlation_heatmap(train_df_for_heatmap, feature_columns)
+
+        # # 如果需要更多視覺化，可選擇性呼叫：
+        # plot_pairplot(train_df_for_heatmap, features=['fighter_score_diff','physical_advantage','technical_advantage'])
+        # plot_box_violin_by_winner(train_df_for_heatmap, features=['power_diff','speed_diff'], plot_type="violin")
+        # plot_win_rate_by_bins(train_df_for_heatmap, feature='power_diff', bins=5)
+        # plot_2d_bin_winrate(train_df_for_heatmap, feature_x='speed_diff', feature_y='power_diff', bins_x=5, bins_y=5)
+        ##############################################################################
+
         # 3. 建立並訓練模型
         model = DetailedNeuralNetwork(
             layer_dims=[X_train.shape[1], 32, 16, 1],
@@ -761,7 +780,7 @@ if __name__ == "__main__":
         'experience': 98
     }
 
-    # 準備測試資料...
+    # 準備測試資料
     test_match = pd.DataFrame({
         # 拳擊手A：Mike Tyson
         'boxerA_weight': [tyson['weight']],
@@ -786,7 +805,7 @@ if __name__ == "__main__":
         'boxerB_experience': [ali['experience']]
     })
 
-    # 計算所有必要的特徵...
+    # 計算所有必要的特徵
     for attr in ['weight', 'height', 'reach', 'power', 'speed', 
                 'stamina', 'defense', 'chin', 'experience']:
         test_match[f'{attr}_diff'] = test_match[f'boxerA_{attr}'] - test_match[f'boxerB_{attr}']
@@ -796,7 +815,7 @@ if __name__ == "__main__":
                 test_match[f'boxerA_{attr}'] / test_match[f'boxerB_{attr}']
             )
 
-    # 計算綜合指標...
+    # 計算綜合指標
     test_match['physical_advantage'] = test_match.apply(calculate_physical_advantage, axis=1)
     test_match['technical_advantage'] = test_match.apply(calculate_technical_advantage, axis=1)
     
@@ -816,23 +835,13 @@ if __name__ == "__main__":
 
     # 準備預測特徵並進行預測
     X_demo = test_match[feature_columns]
-    X_demo_scaled = scaler.transform(X_demo)  # 注意：在實際使用時需要保存scaler
+    X_demo_scaled = scaler.transform(X_demo)
 
     demo_pred = model.predict(X_demo_scaled)
     demo_prob = model.forward_propagation(X_demo_scaled, training=False)
 
     # 輸出預測結果
     print("\n====== 拳擊手 Tyson vs 拳擊手 Ali 模擬對決 ======")
-    print(f"獲勝預測: {'Tyson' if demo_pred[0][0] == 1 else 'Ali'}")
-    print(f"拳擊手 Tyson 獲勝機率: {demo_prob[0][0]*100:.2f}%")
-    print(f"拳擊手 Ali 獲勝機率: {(1-demo_prob[0][0])*100:.2f}%")
-
-    print("\n====== 關鍵屬性差異 ======")
-    for attr in ['weight', 'height', 'reach', 'power', 'speed', 
-                 'stamina', 'defense', 'chin', 'experience']:
-        diff = test_match[f'{attr}_diff'].values[0]
-        print(f"{attr}: {'+' if diff > 0 else ''}{diff:.1f}")
-
-    print("\n====== 綜合實力評分 ======")
-    print(f"拳擊手 Tyson: {test_match['fighter_score_A'].values[0]:.2f}")
-    print(f"拳擊手 Ali: {test_match['fighter_score_B'].values[0]:.2f}")
+    # 輸出預測結果
+    winner = 'Tyson' if demo_pred[0][0] == 1 else 'Ali'
+    print(f"{winner} wins!")
