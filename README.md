@@ -65,3 +65,6 @@ pip install -r requirements.txt
 - [x] 神經網路預測 (version 2)
 - [ ] 網頁介面開發
 - [ ] API 服務
+
+## Demo
+[![BoxingOracle](https://youtu.be/LiB-moIhQ6Y/0.jpg)](https://youtu.be/LiB-moIhQ6Y)
